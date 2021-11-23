@@ -1,0 +1,58 @@
+version: "3"
+
+services:
+
+  mongodb:
+    container_name: mongo-compose
+    image: mongo
+    ports:
+      - "2717:27017"
+    environment:
+      MONGO_INITDB_DATABASE: springdb
+    restart: always
+
+  mysqldb:
+    container_name: mysql-compose
+    image: mysql/mysql-server
+    environment:
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: okhotnik
+      MYSQL_DATABASE: strdb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: okhotnik
+    ports:
+      - "3306:3306"
+    restart: always
+
+  app-http:
+    container_name: app-http
+    image: okhotnik/spring-java-http:latest
+    ports:
+      - "8080:443"
+    restart: always
+    depends_on:
+      - mysqldb
+      - mongodb
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/springdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/strdb
+      SPRING_DATASOURCE_USERNAME: root
+
+  webserver:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+     - 80:80
+     - 443:443
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf/:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/www:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/nginx/ssl/:ro
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
